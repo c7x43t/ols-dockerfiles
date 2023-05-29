@@ -1,17 +1,68 @@
-FROM ubuntu:22.04
+FROM rockylinux:9.2
 
-ARG OLS_VERSION
-ARG PHP_VERSION
+# ARG OLS_VERSION
+# ARG PHP_VERSION
+USER root
+# Set the build-time variables
+ARG OLS_VERSION=1.7.16
+ARG PHP_VERSION=lsphp82
+
+# Use the build-time variables
+ENV OLS_VERSION=${OLS_VERSION}
+ENV PHP_VERSION=${PHP_VERSION}
 
 
-RUN apt-get update && apt-get install wget curl cron tzdata -y
+RUN dnf update -y
+RUN dnf install wget crontabs tzdata -y
 
-RUN wget https://openlitespeed.org/preuse/openlitespeed-$OLS_VERSION.tgz && \
-    tar xzf openlitespeed-$OLS_VERSION.tgz && cd openlitespeed && ./install.sh && \
-    echo 'cloud-docker' > /usr/local/lsws/PLAT && rm -rf /openlitespeed && rm /openlitespeed-$OLS_VERSION.tgz
+RUN wget https://repo.litespeed.sh -O litespeed.sh
+RUN bash litespeed.sh
 
-RUN apt-get install mysql-client $PHP_VERSION $PHP_VERSION-common $PHP_VERSION-mysql $PHP_VERSION-opcache \
-    $PHP_VERSION-curl $PHP_VERSION-imagick $PHP_VERSION-redis $PHP_VERSION-memcached $PHP_VERSION-intl -y
+RUN wget https://openlitespeed.org/preuse/openlitespeed-$OLS_VERSION.tgz
+RUN  tar xzf openlitespeed-$OLS_VERSION.tgz && cd openlitespeed && ./install.sh
+RUN echo 'cloud-docker' > /usr/local/lsws/PLAT && rm -rf /openlitespeed && rm /openlitespeed-$OLS_VERSION.tgz
+
+RUN dnf install mysql -y
+
+RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+RUN dnf install libargon2 -y
+
+RUN dnf install $PHP_VERSION $PHP_VERSION-common -y
+
+RUN dnf install $PHP_VERSION-mysqlnd -y
+RUN dnf install $PHP_VERSION-process -y
+RUN dnf install $PHP_VERSION-bcmath -y
+RUN dnf install $PHP_VERSION-pdo -y
+RUN dnf install $PHP_VERSION-xml -y
+RUN dnf install $PHP_VERSION-soap -y
+RUN dnf install $PHP_VERSION-opcache -y
+
+RUN dnf install $PHP_VERSION-curl -y
+#RUN dnf install -y GraphicsMagick GraphicsMagick-devel GraphicsMagick-perl
+# RUN dnf install -y ImageMagick ImageMagick-devel ImageMagick-perl
+RUN dnf groupinstall -y 'Development Tools'
+
+# RUN dnf -y install bzip2-devel freetype-devel libjpeg-devel libpng-devel libtiff-devel giflib-devel zlib-devel ghostscript-devel djvulibre-devel libwmf-devel jasper-devel libtool-ltdl-devel libX11-devel libXext-devel libXt-devel lcms-devel libxml2-devel librsvg2-devel OpenEXR-devel php-devel
+RUN wget https://www.imagemagick.org/download/ImageMagick.tar.gz && \
+tar xvzf ImageMagick.tar.gz && \
+cd ImageMagick*/ && \
+./configure && \
+make && \ 
+make install
+RUN dnf install $PHP_VERSION-imagick -y
+
+RUN dnf install $PHP_VERSION-redis -y
+
+RUN dnf install $PHP_VERSION-memcached -y
+
+RUN dnf install $PHP_VERSION-intl -y
+RUN dnf install $PHP_VERSION-mbstring -y
+RUN dnf install $PHP_VERSION-mcrypt  -y
+RUN dnf install $PHP_VERSION-mhash  -y
+RUN dnf install $PHP_VERSION-simplexml  -y
+RUN dnf install $PHP_VERSION-gd -y
+
+
 
 RUN ["/bin/bash", "-c", "if [[ $PHP_VERSION == lsphp7* ]]; then apt-get install $PHP_VERSION-json -y; fi"]
 
